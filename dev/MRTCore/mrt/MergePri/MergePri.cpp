@@ -1,4 +1,5 @@
-﻿#include <iostream>
+﻿#include <fstream>
+#include <iostream>
 
 #include "mrm/BaseInternal.h"
 #include "mrm/build/Base.h"
@@ -20,19 +21,30 @@ int wmain(int argc, wchar_t* argv[])
     AutoDeletePtr<ResourcePackMerge> spResourcePackMerge;
     THROW_IF_FAILED(ResourcePackMerge::CreateInstance(pProfile, &spResourcePackMerge));
 
-    if (argc < 2)
+    if (argc < 3)
     {
-        std::wcout << L"Usage: MergePri.exe [input1.pri input2.pri ...] [output.pri]" << std::endl;
+        std::wcout << L"Usage: MergePri.exe [ListOfInputFiles.txt] [output.pri]" << std::endl;
         return -1;
     }
+    auto inputFileList = argv[1];
+    auto outputPriFile = argv[2];
 
-    for (int i = 1; i < argc - 1; i++)
+    wifstream inputFile;
+    inputFile.open(inputFileList);
+
+    while (!inputFile.eof())
     {
-        std::wcout << L"Adding file " << argv[i] << std::endl;
-        THROW_IF_FAILED(spResourcePackMerge->AddPriFile(
-            argv[i], PriFileMerger::InPlaceMerge | PriFileMerger::DefaultPriMergeFlags));
+        std::wstring inputPriFile;
+        std::getline(inputFile, inputPriFile);
+        if (!inputPriFile.empty())
+        {
+            std::wcout << L"Adding file " << inputPriFile << std::endl;
+            THROW_IF_FAILED(spResourcePackMerge->AddPriFile(
+                inputPriFile.c_str(),
+                PriFileMerger::DropDuplicateCandidates | PriFileMerger::InPlaceMerge | PriFileMerger::DefaultPriMergeFlags));
+        }
     }
 
-    std::wcout << L"Writing merged file to " << argv[argc - 1] << std::endl;
-    THROW_IF_FAILED(spResourcePackMerge->WriteToFile(argv[argc - 1]));
+    std::wcout << L"Writing merged file to " << outputPriFile << std::endl;
+    THROW_IF_FAILED(spResourcePackMerge->WriteToFile(outputPriFile));
 }
